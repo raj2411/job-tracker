@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"
 import AddApplicationForm from "@/components/AddApplicationForm"
-// We'll create this in the next step
 import KanbanBoard from "@/components/KanbanBoard"
+import ApplicationDetailModal from "@/components/ApplicationDetailModal"
 import {
   Search,
   Filter,
@@ -14,6 +14,22 @@ import {
   Briefcase
 } from "lucide-react"
 
+type InterviewRound = {
+  id: string
+  type: "PHONE" | "TECHNICAL" | "ONSITE" | "OTHER"
+  scheduledAt: string | null
+  notes: string | null
+}
+
+type Contact = {
+  id: string
+  name: string
+  role: string | null
+  email: string | null
+  linkedinUrl: string | null
+  notes: string | null
+}
+
 type Application = {
   id: string
   company: string
@@ -21,7 +37,13 @@ type Application = {
   status: "APPLIED" | "INTERVIEW" | "OFFER" | "REJECTED"
   jobUrl: string | null
   notes: string | null
+  salaryExpected: number | null
+  salaryOffered: number | null
+  resumeUrl: string | null
+  coverLetterUrl: string | null
   appliedAt: string
+  interviewRounds: InterviewRound[]
+  contacts: Contact[]
 }
 
 export default function DashboardPage() {
@@ -31,6 +53,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<"list" | "board">("list")
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("ALL")
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null)
 
   useEffect(() => {
     fetchApplications()
@@ -52,7 +75,6 @@ export default function DashboardPage() {
     setUserName(data?.user?.name || "")
   }
 
-  // Derived filtered data
   const filteredApps = useMemo(() => {
     return applications.filter(app => {
       const matchSearch = app.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -75,11 +97,10 @@ export default function DashboardPage() {
 
   async function deleteApp(id: string) {
     if (!confirm("Are you sure you want to delete this application?")) return
-    const res = await fetch(`/api/applications/${id}`, {
-      method: "DELETE",
-    })
+    const res = await fetch(`/api/applications/${id}`, { method: "DELETE" })
     if (res.ok) {
       fetchApplications()
+      if (selectedApp?.id === id) setSelectedApp(null)
     }
   }
 
@@ -88,6 +109,13 @@ export default function DashboardPage() {
     INTERVIEW: applications.filter(a => a.status === "INTERVIEW").length,
     OFFER: applications.filter(a => a.status === "OFFER").length,
     REJECTED: applications.filter(a => a.status === "REJECTED").length,
+  }
+
+  const STATUS_STYLES: Record<string, string> = {
+    APPLIED: "bg-blue-50 text-blue-700",
+    INTERVIEW: "bg-yellow-50 text-yellow-700",
+    OFFER: "bg-green-50 text-green-700",
+    REJECTED: "bg-red-50 text-red-700",
   }
 
   return (
@@ -103,9 +131,7 @@ export default function DashboardPage() {
               </div>
               <h1 className="text-2xl font-bold text-gray-900">Job Tracker</h1>
             </div>
-            <p className="text-gray-500 text-sm">
-              Welcome back, {userName}
-            </p>
+            <p className="text-gray-500 text-sm">Welcome back, {userName}</p>
           </div>
           <a href="/api/auth/signout" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors">
             <LogOut size={16} />
@@ -134,7 +160,6 @@ export default function DashboardPage() {
         {/* Controls Bar */}
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
           <div className="flex items-center gap-3 w-full md:w-auto">
-            {/* Search */}
             <div className="relative flex-1 md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
@@ -146,7 +171,6 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Status Filter */}
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <select
@@ -164,7 +188,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* View Toggle */}
             <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1">
               <button
                 onClick={() => setViewMode("list")}
@@ -182,7 +205,6 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Add button */}
             <button
               onClick={() => setShowForm(true)}
               className="flex items-center gap-2 bg-black text-white text-sm px-5 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md active:scale-95"
@@ -199,9 +221,9 @@ export default function DashboardPage() {
             applications={filteredApps}
             updateStatus={updateStatus}
             deleteApp={deleteApp}
+            onCardClick={setSelectedApp}
           />
         ) : (
-          /* Applications list */
           filteredApps.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <div className="text-4xl mb-3">📋</div>
@@ -211,20 +233,34 @@ export default function DashboardPage() {
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
               {filteredApps.map((app) => (
-                <div key={app.id} className="p-4 flex items-center justify-between">
+                <div
+                  key={app.id}
+                  className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => setSelectedApp(app)}
+                >
                   <div>
                     <div className="font-medium text-gray-900">{app.company}</div>
                     <div className="text-sm text-gray-500">{app.role}</div>
+                    {/* Quick info badges */}
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {app.interviewRounds.length > 0 && (
+                        <span className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full font-medium">
+                          {app.interviewRounds.length} interview{app.interviewRounds.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {app.salaryExpected && (
+                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                          ${app.salaryExpected.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <select
                       value={app.status}
-                      onChange={(e) => updateStatus(app.id, e.target.value)}
-                      className={`text-xs font-medium px-2 py-1 rounded-full cursor-pointer outline-none appearance-none border-none text-center ${app.status === "APPLIED" ? "bg-blue-50 text-blue-700" :
-                          app.status === "INTERVIEW" ? "bg-yellow-50 text-yellow-700" :
-                            app.status === "OFFER" ? "bg-green-50 text-green-700" :
-                              "bg-red-50 text-red-700"
-                        }`}
+                      onChange={(e) => { e.stopPropagation(); updateStatus(app.id, e.target.value) }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`text-xs font-medium px-2 py-1 rounded-full cursor-pointer outline-none appearance-none border-none text-center ${STATUS_STYLES[app.status]}`}
                     >
                       <option value="APPLIED">APPLIED</option>
                       <option value="INTERVIEW">INTERVIEW</option>
@@ -235,7 +271,7 @@ export default function DashboardPage() {
                       {new Date(app.appliedAt).toLocaleDateString()}
                     </span>
                     <button
-                      onClick={() => deleteApp(app.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteApp(app.id) }}
                       className="text-gray-400 hover:text-red-500 transition-colors ml-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,8 +282,8 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ))}
-
+          )
+        )}
       </div>
 
       {/* Form modal */}
@@ -256,6 +292,15 @@ export default function DashboardPage() {
           setShowForm(false)
           fetchApplications()
         }} />
+      )}
+
+      {/* Detail modal */}
+      {selectedApp && (
+        <ApplicationDetailModal
+          application={selectedApp}
+          onClose={() => setSelectedApp(null)}
+          onUpdate={fetchApplications}
+        />
       )}
     </main>
   )

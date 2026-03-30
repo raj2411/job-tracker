@@ -28,7 +28,7 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const { status } = body
+  const { status, notes, jobUrl, salaryExpected, salaryOffered, resumeUrl, coverLetterUrl } = body
 
   const existingApp = await prisma.application.findUnique({
     where: { id }
@@ -38,9 +38,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Application not found" }, { status: 404 })
   }
 
+  const data: Record<string, unknown> = {}
+  if (status !== undefined) data.status = status
+  if (notes !== undefined) data.notes = notes
+  if (jobUrl !== undefined) data.jobUrl = jobUrl
+  if (salaryExpected !== undefined) data.salaryExpected = salaryExpected ? Number(salaryExpected) : null
+  if (salaryOffered !== undefined) data.salaryOffered = salaryOffered ? Number(salaryOffered) : null
+  if (resumeUrl !== undefined) data.resumeUrl = resumeUrl
+  if (coverLetterUrl !== undefined) data.coverLetterUrl = coverLetterUrl
+
   const application = await prisma.application.update({
     where: { id },
-    data: { status }
+    data,
   })
 
   return NextResponse.json(application)

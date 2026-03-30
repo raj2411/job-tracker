@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { company, role, jobUrl, notes } = body
+  const { company, role, jobUrl, notes, salaryExpected, resumeUrl, coverLetterUrl } = body
 
   if (!company || !role) {
     return NextResponse.json({ error: "Company and role are required" }, { status: 400 })
@@ -37,7 +37,11 @@ export async function POST(req: Request) {
       role,
       jobUrl: jobUrl || null,
       notes: notes || null,
-    }
+      salaryExpected: salaryExpected ? Number(salaryExpected) : null,
+      resumeUrl: resumeUrl || null,
+      coverLetterUrl: coverLetterUrl || null,
+    },
+    include: { interviewRounds: true, contacts: true },
   })
 
   return NextResponse.json(application, { status: 201 })
@@ -60,7 +64,8 @@ export async function GET() {
 
   const applications = await prisma.application.findMany({
     where: { userId: user.id },
-    orderBy: { appliedAt: "desc" }
+    orderBy: { appliedAt: "desc" },
+    include: { interviewRounds: { orderBy: { scheduledAt: "asc" } }, contacts: true },
   })
 
   return NextResponse.json(applications)

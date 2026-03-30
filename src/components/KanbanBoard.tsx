@@ -30,13 +30,20 @@ type Application = {
   status: Status
   jobUrl: string | null
   notes: string | null
+  salaryExpected: number | null
+  salaryOffered: number | null
+  resumeUrl: string | null
+  coverLetterUrl: string | null
   appliedAt: string
+  interviewRounds: { id: string; type: "PHONE" | "TECHNICAL" | "ONSITE" | "OTHER"; scheduledAt: string | null; notes: string | null }[]
+  contacts: { id: string; name: string; role: string | null; email: string | null; linkedinUrl: string | null; notes: string | null }[]
 }
 
 interface KanbanBoardProps {
   applications: Application[]
   updateStatus: (id: string, newStatus: string) => void
   deleteApp: (id: string) => void
+  onCardClick: (app: Application) => void
 }
 
 const COLUMNS: { id: Status; label: string; color: string }[] = [
@@ -46,7 +53,7 @@ const COLUMNS: { id: Status; label: string; color: string }[] = [
   { id: "REJECTED", label: "Rejected", color: "bg-red-500" },
 ]
 
-export default function KanbanBoard({ applications, updateStatus, deleteApp }: KanbanBoardProps) {
+export default function KanbanBoard({ applications, updateStatus, deleteApp, onCardClick }: KanbanBoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -107,6 +114,7 @@ export default function KanbanBoard({ applications, updateStatus, deleteApp }: K
             color={column.color}
             apps={applications.filter((app) => app.status === column.id)}
             deleteApp={deleteApp}
+            onCardClick={onCardClick}
           />
         ))}
       </div>
@@ -134,12 +142,13 @@ export default function KanbanBoard({ applications, updateStatus, deleteApp }: K
   )
 }
 
-function KanbanColumn({ id, label, color, apps, deleteApp }: { 
+function KanbanColumn({ id, label, color, apps, deleteApp, onCardClick }: { 
   id: string, 
   label: string, 
   color: string, 
   apps: Application[],
   deleteApp: (id: string) => void
+  onCardClick: (app: Application) => void
 }) {
   return (
     <div className="flex flex-col gap-4 bg-gray-100/50 rounded-2xl p-4 border border-gray-200/50">
@@ -156,7 +165,7 @@ function KanbanColumn({ id, label, color, apps, deleteApp }: {
       <SortableContext items={apps.map(a => a.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-3 min-h-[150px]">
           {apps.map((app) => (
-            <SortableApplicationCard key={app.id} app={app} deleteApp={deleteApp} />
+            <SortableApplicationCard key={app.id} app={app} deleteApp={deleteApp} onCardClick={onCardClick} />
           ))}
           {apps.length === 0 && (
             <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center p-8">
@@ -169,7 +178,7 @@ function KanbanColumn({ id, label, color, apps, deleteApp }: {
   )
 }
 
-function SortableApplicationCard({ app, deleteApp }: { app: Application, deleteApp: (id: string) => void }) {
+function SortableApplicationCard({ app, deleteApp, onCardClick }: { app: Application, deleteApp: (id: string) => void, onCardClick: (app: Application) => void }) {
   const {
     attributes,
     listeners,
@@ -196,18 +205,22 @@ function SortableApplicationCard({ app, deleteApp }: { app: Application, deleteA
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <ApplicationCard app={app} deleteApp={deleteApp} />
+      <ApplicationCard app={app} deleteApp={deleteApp} onCardClick={onCardClick} />
     </div>
   )
 }
 
-function ApplicationCard({ app, isOverlay, deleteApp }: { 
+function ApplicationCard({ app, isOverlay, deleteApp, onCardClick }: { 
   app: Application, 
   isOverlay?: boolean,
   deleteApp: (id: string) => void
+  onCardClick?: (app: Application) => void
 }) {
   return (
-    <div className={`bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group relative ${isOverlay ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`}>
+    <div
+      className={`bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group relative ${isOverlay ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`}
+      onClick={(e) => { if (onCardClick && !isOverlay) { e.stopPropagation(); onCardClick(app) } }}
+    >
       <div className="flex justify-between items-start mb-2">
         <h4 className="font-bold text-gray-900 text-sm leading-tight">{app.company}</h4>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
