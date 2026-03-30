@@ -1,5 +1,7 @@
 # 💼 Job Tracker
 
+🔗 **Live Demo:** [job-tracker-dusky-tau.vercel.app](https://job-tracker-dusky-tau.vercel.app)
+
 A full-stack job application tracker built with **Next.js**, **Prisma**, and **PostgreSQL**. Track your applications through every stage — from Applied to Offer — with a slick dashboard, drag-and-drop Kanban board, and Google OAuth sign-in.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
