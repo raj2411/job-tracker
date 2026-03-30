@@ -24,10 +24,13 @@ export default function DashboardPage() {
   }, [])
 
   async function fetchApplications() {
-    const res = await fetch("/api/applications")
-    const data = await res.json()
+  const res = await fetch("/api/applications")
+  if (!res.ok) return
+  const data = await res.json()
+  if (Array.isArray(data)) {
     setApplications(data)
   }
+}
 
   async function fetchUser() {
     const res = await fetch("/api/auth/session")

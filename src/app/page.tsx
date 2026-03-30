@@ -9,13 +9,13 @@ export default function HomePage() {
         <div className="font-bold text-lg text-gray-900">JobTracker</div>
         <div className="flex items-center gap-4">
           <Link
-            href="/api/auth/signin"
+            href="/signin"
             className="text-sm text-gray-500 hover:text-gray-900"
           >
             Sign in
           </Link>
           <Link
-            href="/api/auth/signin"
+            href="/register"
             className="text-sm bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800"
           >
             Get started free
@@ -37,7 +37,7 @@ export default function HomePage() {
         </p>
         <div className="flex items-center gap-4">
           <Link
-            href="/api/auth/signin"
+            href="/register"
             className="bg-black text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-gray-800"
           >
             Start tracking for free
